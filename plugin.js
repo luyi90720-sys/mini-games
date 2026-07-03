@@ -1309,9 +1309,16 @@ select.mg-input option { background: var(--mg-surface); color: var(--mg-text); }
       var mode = container.querySelector('#ww-mode').value;
       var spectator = container.querySelector('#ww-spectator') ? container.querySelector('#ww-spectator').checked : false;
 
-      if (checkedIds.length !== count - 1) {
-        roche.ui.toast("需要选择 " + (count - 1) + " 个角色（加你共 " + count + " 人）");
-        return;
+      if (spectator) {
+        if (checkedIds.length !== count) {
+          roche.ui.toast("旁观模式需要选择 " + count + " 个角色（共 " + count + " 人，你不参与）");
+          return;
+        }
+      } else {
+        if (checkedIds.length !== count - 1) {
+          roche.ui.toast("需要选择 " + (count - 1) + " 个角色（加你共 " + count + " 人）");
+          return;
+        }
       }
 
       // 开新局前清除旧存档
@@ -1339,17 +1346,19 @@ select.mg-input option { background: var(--mg-surface); color: var(--mg-text); }
         }
       }
 
-      // 构建玩家列表（user + chars）
+      // 构建玩家列表（旁观模式：仅 chars；非旁观：user + chars）
       var allPlayers = [];
-      allPlayers.push({
-        id: "user",
-        name: userName,
-        realName: (userPersona && userPersona.name) || "",
-        handle: (userPersona && userPersona.handle) || "",
-        isUser: true,
-        personaText: userPersonaText,
-        avatar: userAvatar
-      });
+      if (!spectator) {
+        allPlayers.push({
+          id: "user",
+          name: userName,
+          realName: (userPersona && userPersona.name) || "",
+          handle: (userPersona && userPersona.handle) || "",
+          isUser: true,
+          personaText: userPersonaText,
+          avatar: userAvatar
+        });
+      }
       charDetails.forEach(function (cd) {
         allPlayers.push({
           id: cd.id,
@@ -3156,10 +3165,10 @@ select.mg-input option { background: var(--mg-surface); color: var(--mg-text); }
     }
 
     // === 结算死亡 ===
-    // 狼刀：守卫守护 XOR 女巫救药 → 存活；同守同救（两者同时生效）→ 死
+    // 狼刀：守卫守护或女巫救药任一生效 → 存活
     var guarded = (st.nightActions.guardTarget != null && st.nightActions.guardTarget === st.nightActions.wolvesTarget);
     var saved = st.nightActions.witchSave;
-    var wolfKillHappens = st.nightActions.wolvesTarget != null && ((!guarded && !saved) || (guarded && saved));
+    var wolfKillHappens = st.nightActions.wolvesTarget != null && !guarded && !saved;
     if (wolfKillHappens) {
       var vP = st.players.find(function (p) { return p.seat === st.nightActions.wolvesTarget; });
       if (vP && vP.alive) {
